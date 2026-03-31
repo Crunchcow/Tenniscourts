@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --vereinsrot: #c10d0d;
+  --vereinsrot-dark: #a00f0f;
+  --vereinsrot-light: #e51313;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #f8f8f8;
+  color: #1a1a1a;
+}
+
+/* Slot-Farben */
+.slot-booking    { background-color: #3b82f6; }
+.slot-training   { background-color: #f59e0b; }
+.slot-match      { background-color: #ef4444; }
+.slot-maintenance{ background-color: #6b7280; }
+.slot-event      { background-color: #8b5cf6; }
+
+/* Zeitgitter */
+.time-grid-container {
+  position: relative;
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safe area padding für iPhone Home Indicator */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Auf Mobile maximale Höhe für Modal */
+@media (max-width: 639px) {
+  .time-grid-container {
+    max-height: calc(100vh - 180px);
+  }
+}
+
+/* Scrollbar */
+.time-grid-container::-webkit-scrollbar {
+  width: 6px;
+}
+.time-grid-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+.time-grid-container::-webkit-scrollbar-thumb {
+  background: #d1d1d1;
+  border-radius: 4px;
+}
+
+/* Hover auf freien Slots */
+.free-slot-hover:hover {
+  background-color: rgba(193, 13, 13, 0.08);
+  cursor: pointer;
+}
+
+/* Court card border */
+.court-card {
+  border: 2px solid #e5e5e5;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  transition: box-shadow 0.2s;
+}
+.court-card:hover {
+  box-shadow: 0 4px 12px rgba(193,13,13,0.12);
+}
+
+/* Animation */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-in {
+  animation: fadeSlideIn 0.2s ease-out;
+}

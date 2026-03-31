@@ -1,0 +1,25 @@
+[Unit]
+Description=Gunicorn daemon – Tenniscourts Buchungssystem
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/tenniscourts/backend
+EnvironmentFile=/var/www/tenniscourts/backend/.env
+ExecStart=/var/www/tenniscourts/backend/.venv/bin/gunicorn \
+          tenniscourts.wsgi:application \
+          --bind 127.0.0.1:8004 \
+          --workers 3 \
+          --timeout 60 \
+          --log-file /var/log/nginx/gunicorn-tenniscourts.log \
+          --access-logfile /var/log/nginx/gunicorn-tenniscourts-access.log
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
