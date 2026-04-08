@@ -3,22 +3,8 @@ import axios from 'axios'
 const api = axios.create({
   baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true,
 })
-
-let adminToken = localStorage.getItem('admin_token') || ''
-
-export function setAdminToken(token) {
-  adminToken = token
-  localStorage.setItem('admin_token', token)
-}
-
-export function getAdminToken() {
-  return localStorage.getItem('admin_token') || ''
-}
-
-function adminHeaders() {
-  return { 'X-Admin-Token': getAdminToken() }
-}
 
 // ── Öffentliche Endpunkte ──────────────────────────────────────────────────
 
@@ -37,25 +23,19 @@ export const fetchBookingByToken = (token) =>
 export const cancelBookingByToken = (token) =>
   api.post(`/bookings/${token}/cancel/`).then((r) => r.data)
 
-// ── Admin-Endpunkte ────────────────────────────────────────────────────────
+// ── Admin-Endpunkte (Session-Cookie via OIDC) ──────────────────────────────
 
 export const fetchAdminBookings = (date) =>
-  api
-    .get('/admin/bookings/', { params: { date }, headers: adminHeaders() })
-    .then((r) => r.data)
+  api.get('/admin/bookings/', { params: { date } }).then((r) => r.data)
 
 export const updateBookingStatus = (id, status) =>
-  api
-    .patch(`/admin/bookings/${id}/`, { status }, { headers: adminHeaders() })
-    .then((r) => r.data)
+  api.patch(`/admin/bookings/${id}/`, { status }).then((r) => r.data)
 
 export const fetchAdminBlocks = (start, end) =>
-  api
-    .get('/admin/blocks/', { params: { start, end }, headers: adminHeaders() })
-    .then((r) => r.data)
+  api.get('/admin/blocks/', { params: { start, end } }).then((r) => r.data)
 
 export const createBlock = (data) =>
-  api.post('/admin/blocks/', data, { headers: adminHeaders() }).then((r) => r.data)
+  api.post('/admin/blocks/', data).then((r) => r.data)
 
 export const deleteBlock = (id) =>
-  api.delete(`/admin/blocks/${id}/`, { headers: adminHeaders() })
+  api.delete(`/admin/blocks/${id}/`)

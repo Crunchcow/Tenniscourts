@@ -10,7 +10,13 @@ urlpatterns = [
     path('bookings/<uuid:token>/cancel/', views.BookingCancelView.as_view(), name='booking-cancel'),
     path('bookings/<uuid:token>/detail/', views.BookingDetailPublicView.as_view(), name='booking-detail'),
 
-    # Admin (X-Admin-Token required)
+    # OIDC Auth
+    path('auth/login/', views.oidc_login, name='oidc-login'),
+    path('auth/callback/', views.oidc_callback, name='oidc-callback'),
+    path('auth/status/', views.oidc_status, name='oidc-status'),
+    path('auth/logout/', views.oidc_logout, name='oidc-logout'),
+
+    # Admin (OIDC-Session oder Legacy X-Admin-Token)
     path('admin/bookings/', views.AdminBookingListView.as_view(), name='admin-booking-list'),
     path('admin/bookings/<int:pk>/', views.AdminBookingDetailView.as_view(), name='admin-booking-detail'),
     path('admin/blocks/', views.AdminBlockListView.as_view(), name='admin-block-list'),

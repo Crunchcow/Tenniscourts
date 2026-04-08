@@ -129,9 +129,17 @@ BOOKING_MIN_DURATION_MINUTES = 30  # Minimale Buchungsdauer
 APPROVAL_REQUIRED = os.environ.get('APPROVAL_REQUIRED', 'false').lower() == 'true'
 
 # ---------------------------------------------------------------------------
-# Admin API
+# Admin API (Legacy – wird durch OIDC ersetzt)
 # ---------------------------------------------------------------------------
 ADMIN_API_TOKEN = os.environ.get('ADMIN_API_TOKEN', 'change-this-secret-token')
+
+# ---------------------------------------------------------------------------
+# ClubAuth OIDC
+# ---------------------------------------------------------------------------
+OIDC_BASE_URL      = os.environ.get('OIDC_BASE_URL', '')
+OIDC_CLIENT_ID     = os.environ.get('OIDC_CLIENT_ID', '')
+OIDC_CLIENT_SECRET = os.environ.get('OIDC_CLIENT_SECRET', '')
+OIDC_REDIRECT_URI  = os.environ.get('OIDC_REDIRECT_URI', '')
 
 # ---------------------------------------------------------------------------
 # E-Mail

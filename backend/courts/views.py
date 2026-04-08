@@ -1,9 +1,14 @@
 import datetime
+import secrets
+import urllib.parse
 import zoneinfo
 import logging
 
+import requests as http_requests
 from django.conf import settings
-from django.shortcuts import get_object_or_404
+from django.contrib.auth.models import User
+from django.shortcuts import get_object_or_404, redirect
+from django.http import HttpResponseForbidden, HttpResponseRedirect, JsonResponse
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -27,9 +32,105 @@ def _make_aware(d: datetime.date, t: datetime.time) -> datetime.datetime:
     return datetime.datetime.combine(d, t).replace(tzinfo=LOCAL_TZ)
 
 
+def _oidc_configured():
+    return bool(getattr(settings, 'OIDC_CLIENT_ID', ''))
+
+
 def _admin_required(request) -> bool:
+    """Prüft OIDC-Session (bevorzugt) oder Legacy X-Admin-Token."""
+    # OIDC-Session-Check
+    if request.session.get('oidc_admin', False):
+        return True
+    # Legacy-Fallback: statisches Token (für Übergangszeit)
     token = request.headers.get('X-Admin-Token', '')
-    return token == settings.ADMIN_API_TOKEN
+    if token and token == settings.ADMIN_API_TOKEN:
+        return True
+    return False
+
+
+# ── OIDC-Endpunkte ───────────────────────────────────────────────────────────
+
+def oidc_login(request):
+    """Leitet zur ClubAuth Authorisierungs-URL weiter."""
+    if not _oidc_configured():
+        return JsonResponse({'error': 'OIDC nicht konfiguriert.'}, status=503)
+    state = secrets.token_urlsafe(32)
+    request.session['oidc_state'] = state
+    params = urllib.parse.urlencode({
+        'response_type': 'code',
+        'client_id': settings.OIDC_CLIENT_ID,
+        'redirect_uri': settings.OIDC_REDIRECT_URI,
+        'scope': 'openid profile email roles',
+        'state': state,
+    })
+    return redirect(f"{settings.OIDC_BASE_URL}/o/authorize/?{params}")
+
+
+def oidc_callback(request):
+    """Empfängt OIDC Code, validiert Rolle, setzt Session."""
+    code = request.GET.get('code', '')
+    state = request.GET.get('state', '')
+    if not code or state != request.session.get('oidc_state'):
+        return redirect('/admin/?error=invalid_state')
+
+    try:
+        resp = http_requests.post(
+            f"{settings.OIDC_BASE_URL}/o/token/",
+            data={
+                'grant_type': 'authorization_code',
+                'code': code,
+                'redirect_uri': settings.OIDC_REDIRECT_URI,
+                'client_id': settings.OIDC_CLIENT_ID,
+                'client_secret': settings.OIDC_CLIENT_SECRET,
+            },
+            timeout=10,
+        )
+    except Exception:
+        return redirect('/admin/?error=token_exchange')
+
+    if resp.status_code != 200:
+        return redirect('/admin/?error=token_exchange')
+
+    access_token = resp.json().get('access_token', '')
+    try:
+        info = http_requests.get(
+            f"{settings.OIDC_BASE_URL}/o/userinfo/",
+            headers={'Authorization': f'Bearer {access_token}'},
+            timeout=10,
+        )
+    except Exception:
+        return redirect('/admin/?error=userinfo')
+
+    if info.status_code != 200:
+        return redirect('/admin/?error=userinfo')
+
+    claims = info.json()
+    app_roles = claims.get('roles', {}).get('tenniscourts', {})
+    role = app_roles.get('role', '')
+
+    if role not in ('admin', 'verwaltung'):
+        return redirect('/admin/?error=no_role')
+
+    request.session['oidc_admin'] = True
+    request.session['oidc_email'] = claims.get('email', '')
+    request.session.pop('oidc_state', None)
+    return redirect('/admin/')
+
+
+def oidc_status(request):
+    """Liefert den aktuellen Auth-Status als JSON."""
+    if _admin_required(request):
+        return JsonResponse({
+            'authenticated': True,
+            'email': request.session.get('oidc_email', ''),
+        })
+    return JsonResponse({'authenticated': False}, status=401)
+
+
+def oidc_logout(request):
+    """Löscht die OIDC-Session."""
+    request.session.flush()
+    return redirect('/')
 
 
 # ---------------------------------------------------------------------------

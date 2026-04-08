@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import {
   fetchAdminBookings, fetchAdminBlocks,
   createBlock, deleteBlock, updateBookingStatus,
-  setAdminToken, getAdminToken,
 } from '../api/client'
 import Header from '../components/Header'
 import { toISODate, toLocalISOString } from '../utils/dateHelpers'
@@ -22,9 +21,9 @@ const STATUS_BADGE = {
 }
 
 export default function AdminPanel() {
-  const [authenticated, setAuthenticated] = useState(!!getAdminToken())
-  const [tokenInput, setTokenInput] = useState('')
-  const [authError, setAuthError] = useState('')
+  const [authenticated, setAuthenticated] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false)
+  const [authEmail, setAuthEmail] = useState('')
 
   const [tab, setTab] = useState('bookings') // bookings | blocks
   const [date, setDate] = useState(toISODate(new Date()))
@@ -46,6 +45,17 @@ export default function AdminPanel() {
     note: '',
     created_by: 'Verwaltung',
   })
+
+  useEffect(() => {
+    fetch('/api/auth/status/', { credentials: 'same-origin' })
+      .then((r) => r.json())
+      .then((data) => {
+        setAuthenticated(data.authenticated === true)
+        setAuthEmail(data.email || '')
+      })
+      .catch(() => setAuthenticated(false))
+      .finally(() => setAuthChecked(true))
+  }, [])
 
   useEffect(() => {
     if (!authenticated) return
@@ -72,11 +82,12 @@ export default function AdminPanel() {
     }
   }
 
-  const handleLogin = () => {
-    if (!tokenInput.trim()) { setAuthError('Bitte Token eingeben.'); return }
-    setAdminToken(tokenInput.trim())
-    setAuthenticated(true)
-    setAuthError('')
+  const handleLogout = () => {
+    fetch('/api/auth/logout/', { credentials: 'same-origin' })
+      .finally(() => {
+        setAuthenticated(false)
+        setAuthEmail('')
+      })
   }
 
   const handleCancelBooking = async (id) => {
@@ -118,6 +129,18 @@ export default function AdminPanel() {
     }
   }
 
+  // ── Auth-Check läuft noch ─────────────────────────────────────────────────
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <p className="text-gray-400">Prüfe Anmeldung …</p>
+        </main>
+      </div>
+    )
+  }
+
   // ── Login-Screen ──────────────────────────────────────────────────────────
   if (!authenticated) {
     return (
@@ -127,24 +150,15 @@ export default function AdminPanel() {
           <div className="bg-white rounded-2xl shadow-lg w-full max-w-sm overflow-hidden">
             <div className="bg-rot-700 text-white px-6 py-4">
               <h2 className="font-bold text-lg">Verwaltung</h2>
-              <p className="text-rot-200 text-sm">Admin-Token eingeben</p>
+              <p className="text-rot-200 text-sm">Anmeldung erforderlich</p>
             </div>
             <div className="p-6 space-y-4">
-              <input
-                type="password"
-                value={tokenInput}
-                onChange={(e) => setTokenInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                placeholder="Admin-Token"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rot-700"
-              />
-              {authError && <p className="text-rot-700 text-xs">{authError}</p>}
-              <button
-                onClick={handleLogin}
-                className="w-full py-2.5 rounded-xl bg-rot-700 text-white font-semibold hover:bg-rot-800 transition-colors"
+              <a
+                href="/api/auth/login/"
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-rot-700 text-white font-semibold hover:bg-rot-800 transition-colors text-center"
               >
-                Anmelden
-              </button>
+                🔐 Mit FCTM-Konto anmelden
+              </a>
               <Link to="/" className="block text-center text-xs text-gray-400 hover:text-gray-600">
                 ← Zurück zum Buchungsplan
               </Link>
@@ -162,6 +176,7 @@ export default function AdminPanel() {
 
       <div className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="max-w-5xl mx-auto flex flex-wrap items-center gap-3 justify-between">
+        <div className="flex flex-wrap items-center gap-3 justify-between">
           <div className="flex gap-2">
             {['bookings', 'blocks'].map((t) => (
               <button
@@ -176,6 +191,7 @@ export default function AdminPanel() {
             ))}
           </div>
           <div className="flex items-center gap-2">
+            {authEmail && <span className="text-xs text-gray-500">{authEmail}</span>}
             <input
               type="date"
               value={date}
@@ -187,6 +203,13 @@ export default function AdminPanel() {
               className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-sm hover:bg-gray-200 transition-colors"
             >
               ↻
+            </button>
+            <button
+              onClick={handleLogout}
+              className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-sm hover:bg-gray-200 transition-colors"
+              title="Abmelden"
+            >
+              ✕
             </button>
           </div>
         </div>
