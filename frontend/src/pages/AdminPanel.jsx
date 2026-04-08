@@ -176,7 +176,6 @@ export default function AdminPanel() {
 
       <div className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="max-w-5xl mx-auto flex flex-wrap items-center gap-3 justify-between">
-        <div className="flex flex-wrap items-center gap-3 justify-between">
           <div className="flex gap-2">
             {['bookings', 'blocks'].map((t) => (
               <button
