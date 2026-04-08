@@ -137,6 +137,7 @@ ADMIN_API_TOKEN = os.environ.get('ADMIN_API_TOKEN', 'change-this-secret-token')
 # ClubAuth OIDC
 # ---------------------------------------------------------------------------
 OIDC_BASE_URL      = os.environ.get('OIDC_BASE_URL', '')
+OIDC_INTERNAL_URL  = os.environ.get('OIDC_INTERNAL_URL', '')
 OIDC_CLIENT_ID     = os.environ.get('OIDC_CLIENT_ID', '')
 OIDC_CLIENT_SECRET = os.environ.get('OIDC_CLIENT_SECRET', '')
 OIDC_REDIRECT_URI  = os.environ.get('OIDC_REDIRECT_URI', '')
