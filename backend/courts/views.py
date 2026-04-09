@@ -109,21 +109,27 @@ def oidc_callback(request):
     app_roles = claims.get('roles', {}).get('tenniscourts', {})
     role = app_roles.get('role', '')
 
-    if role not in ('admin', 'verwaltung'):
-        return redirect('/admin/?error=no_role')
-
-    request.session['oidc_admin'] = True
+    request.session['oidc_authenticated'] = True
     request.session['oidc_email'] = claims.get('email', '')
+    request.session['oidc_name'] = claims.get('name', '')
     request.session.pop('oidc_state', None)
-    return redirect('/admin/')
+
+    if role in ('admin', 'verwaltung'):
+        request.session['oidc_admin'] = True
+        return redirect('/admin/')
+
+    request.session['oidc_admin'] = False
+    return redirect('/')
 
 
 def oidc_status(request):
     """Liefert den aktuellen Auth-Status als JSON."""
-    if _admin_required(request):
+    if request.session.get('oidc_authenticated', False) or _admin_required(request):
         return JsonResponse({
             'authenticated': True,
             'email': request.session.get('oidc_email', ''),
+            'name': request.session.get('oidc_name', ''),
+            'is_admin': request.session.get('oidc_admin', False),
         })
     return JsonResponse({'authenticated': False}, status=401)
 
@@ -264,8 +270,13 @@ class WeekOverviewView(APIView):
 
 
 class BookingCreateView(generics.CreateAPIView):
-    """Öffentliche Buchung erstellen."""
+    """Buchung erstellen – Login über ClubAuth erforderlich."""
     serializer_class = BookingSerializer
+
+    def create(self, request, *args, **kwargs):
+        if not (request.session.get('oidc_authenticated') or _admin_required(request)):
+            return Response({'error': 'Login erforderlich.', 'login_url': '/api/auth/login/'}, status=401)
+        return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         booking_status = (

@@ -6,7 +6,21 @@ const api = axios.create({
   withCredentials: true,
 })
 
-// ── Öffentliche Endpunkte ──────────────────────────────────────────────────
+// Bei 401: zu ClubAuth-Login weiterleiten (außer bei /auth/status selbst)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && !error.config.url.includes('/auth/status')) {
+      window.location.href = '/api/auth/login/'
+    }
+    return Promise.reject(error)
+  }
+)
+
+// ── Auth ──────────────────────────────────────────────────
+
+export const fetchAuthStatus = () =>
+  api.get('/auth/status/').then((r) => r.data).catch(() => ({ authenticated: false }))
 
 export const fetchSchedule = (date) =>
   api.get('/schedule/', { params: { date } }).then((r) => r.data)
