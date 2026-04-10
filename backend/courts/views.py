@@ -114,11 +114,7 @@ def oidc_callback(request):
     request.session['oidc_name'] = claims.get('name', '')
     request.session.pop('oidc_state', None)
 
-    if role in ('admin', 'verwaltung'):
-        request.session['oidc_admin'] = True
-        return redirect('/admin/')
-
-    request.session['oidc_admin'] = False
+    request.session['oidc_admin'] = role in ('admin', 'verwaltung')
     return redirect('/')
 
 
