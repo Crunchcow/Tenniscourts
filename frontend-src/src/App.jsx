@@ -73,7 +73,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-100/80">
       <Topbar auth={auth} />
 
       <DateNav
@@ -83,7 +83,7 @@ export default function App() {
         onViewChange={setView}
       />
 
-      <main className="max-w-screen-xl mx-auto px-4 pb-16">
+      <main className="max-w-screen-xl mx-auto px-4 pt-1 pb-16">
         {loading ? (
           <Loader />
         ) : view === 'day' ? (
