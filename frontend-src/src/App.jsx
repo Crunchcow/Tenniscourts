@@ -73,7 +73,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100/80">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(160deg, #f0fdf4 0%, #f1f5f9 50%, #f0fdf4 100%)' }}>
       <Topbar auth={auth} />
 
       <DateNav

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 530" width="800" height="530">
+  <!-- Ground / outer area -->
+  <rect width="800" height="530" fill="#4a7c59"/>
+
+  <!-- Court surface -->
+  <rect x="80" y="60" width="640" height="410" fill="#c17f3a" rx="2"/>
+
+  <!-- Court lines (white) -->
+  <!-- Outer boundary -->
+  <rect x="80" y="60" width="640" height="410" fill="none" stroke="white" stroke-width="4"/>
+
+  <!-- Singles sidelines -->
+  <line x1="148" y1="60" x2="148" y2="470" stroke="white" stroke-width="2"/>
+  <line x1="652" y1="60" x2="652" y2="470" stroke="white" stroke-width="2"/>
+
+  <!-- Center line (horizontal) -->
+  <line x1="80" y1="265" x2="720" y2="265" stroke="white" stroke-width="3"/>
+
+  <!-- Service boxes top -->
+  <line x1="148" y1="60" x2="652" y2="60" stroke="white" stroke-width="2"/>
+  <line x1="148" y1="172" x2="652" y2="172" stroke="white" stroke-width="2"/>
+  <line x1="400" y1="60" x2="400" y2="172" stroke="white" stroke-width="2"/>
+
+  <!-- Service boxes bottom -->
+  <line x1="148" y1="358" x2="652" y2="358" stroke="white" stroke-width="2"/>
+  <line x1="148" y1="470" x2="652" y2="470" stroke="white" stroke-width="2"/>
+  <line x1="400" y1="358" x2="400" y2="470" stroke="white" stroke-width="2"/>
+
+  <!-- Net -->
+  <line x1="80" y1="265" x2="720" y2="265" stroke="#888" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+  <rect x="78" y="256" width="644" height="18" fill="none" stroke="white" stroke-width="3" opacity="0.9"/>
+  <!-- Net posts -->
+  <rect x="72" y="252" width="8" height="26" fill="white" rx="2"/>
+  <rect x="720" y="252" width="8" height="26" fill="white" rx="2"/>
+
+  <!-- Center service marks -->
+  <line x1="398" y1="263" x2="402" y2="267" stroke="white" stroke-width="2"/>
+  <line x1="398" y1="267" x2="402" y2="263" stroke="white" stroke-width="2"/>
+
+  <!-- Shadows / depth -->
+  <rect x="80" y="60" width="640" height="410" fill="url(#courtShading)" rx="2"/>
+
+  <defs>
+    <linearGradient id="courtShading" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(0,0,0,0.08)"/>
+      <stop offset="40%" stop-color="rgba(0,0,0,0)"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0.12)"/>
+    </linearGradient>
+  </defs>
+</svg>

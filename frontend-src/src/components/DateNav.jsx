@@ -8,7 +8,7 @@ export default function DateNav({ date, view, onDateChange, onViewChange }) {
   const chips = Array.from({ length: 9 }, (_, i) => addDays(date, i - 4))
 
   return (
-    <div className="bg-slate-100 border-b border-slate-200">
+    <div className="border-b border-green-100/80" style={{ background: 'linear-gradient(90deg, #f0fdf4 0%, #f8fafc 50%, #f0fdf4 100%)' }}>
       <div className="max-w-screen-xl mx-auto px-4 py-3 flex flex-col gap-2">
 
         {/* Row 1: date + arrows + view toggle */}
