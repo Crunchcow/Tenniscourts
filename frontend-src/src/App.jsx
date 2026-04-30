@@ -16,7 +16,7 @@ export default function App() {
   const [schedule, setSchedule] = useState(null)
   const [weekData, setWeekData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [modal, setModal]     = useState(null) // { courtId, courtName }
+  const [modal, setModal]     = useState(null) // { courtId, courtName, start?, end? }
   const [toast, setToast]     = useState(null)
 
   useEffect(() => {
@@ -58,12 +58,12 @@ export default function App() {
     setTimeout(() => setToast(null), 4500)
   }
 
-  const openModal = (courtId, courtName) => {
+  const openModal = (courtId, courtName, start = '', end = '') => {
     if (!auth?.authenticated) {
       window.location.href = '/api/auth/login/'
       return
     }
-    setModal({ courtId, courtName })
+    setModal({ courtId, courtName, start, end })
   }
 
   const onBooked = () => {
@@ -106,6 +106,8 @@ export default function App() {
           courtName={modal.courtName}
           date={date}
           auth={auth}
+          initialStart={modal.start}
+          initialEnd={modal.end}
           onClose={() => setModal(null)}
           onBooked={onBooked}
           onError={(msg) => showToast(msg, 'error')}
