@@ -27,3 +27,11 @@ export const createBooking = (payload) =>
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
     body: JSON.stringify(payload),
   })
+
+export const cancelBooking = (token) =>
+  api(`/cancel/${token}/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCsrf() },
+  })
+
+export const getBookingByToken = (token) => api(`/cancel/${token}/`)

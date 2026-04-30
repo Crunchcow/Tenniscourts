@@ -27,8 +27,10 @@ export default function BookingModal({ courtId, courtName, date, auth, initialSt
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
-  const dateStr  = format(date, 'yyyy-MM-dd')
-  const dateLabel = format(date, 'EEEE, d. MMMM yyyy', { locale: de })
+  const dateStr   = format(date, 'yyyy-MM-dd')
+  const dateLabel  = format(date, 'EEEE, d. MMMM yyyy', { locale: de })
+  const isToday    = dateStr === format(new Date(), 'yyyy-MM-dd')
+  const nowTime    = isToday ? format(new Date(), 'HH:mm') : undefined
 
   const durationMin = (() => {
     if (!start || !end) return null
@@ -45,7 +47,7 @@ export default function BookingModal({ courtId, courtName, date, auth, initialSt
     if (durationMin !== null && durationMin < 30) { setError('Mindestbuchungsdauer ist 30 Minuten.'); return }
     setLoading(true)
     try {
-      await createBooking({
+      const result = await createBooking({
         court: courtId,
         booker_name:  name.trim(),
         booker_email: email.trim(),
@@ -54,7 +56,12 @@ export default function BookingModal({ courtId, courtName, date, auth, initialSt
         start_datetime: `${dateStr}T${start}:00`,
         end_datetime:   `${dateStr}T${end}:00`,
       })
-      onBooked()
+      onBooked({
+        ...result,
+        start,
+        end,
+        cancellation_token: result.cancellation_token,
+      }, courtName)
     } catch (err) {
       const data = err.data ?? {}
       const msg = data.non_field_errors?.join(' ')
@@ -127,11 +134,11 @@ export default function BookingModal({ courtId, courtName, date, auth, initialSt
           <div className="grid grid-cols-2 gap-3">
             <Field label="Von *">
               <input required type="time" value={start} onChange={e => setStart(e.target.value)}
-                step="1800" className={inp} />
+                step="1800" min={nowTime} className={inp} />
             </Field>
             <Field label="Bis *">
               <input required type="time" value={end} onChange={e => setEnd(e.target.value)}
-                step="1800" className={inp} />
+                step="1800" min={start || nowTime} className={inp} />
             </Field>
           </div>
 

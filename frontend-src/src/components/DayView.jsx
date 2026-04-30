@@ -56,10 +56,11 @@ export default function DayView({ date, data, onBook }) {
     )
   }
 
-  const now    = new Date()
-  const nowMin = now.getHours() * 60 + now.getMinutes() - HOUR_START * 60
+  const now     = new Date()
+  const nowMin  = now.getHours() * 60 + now.getMinutes() - HOUR_START * 60
   const showNow = isToday(date) && nowMin >= 0 && nowMin <= TOTAL_MIN
-  const hours  = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i)
+  const todayFlag = isToday(date)
+  const hours   = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i)
 
   return (
     <div className="animate-fade-up pt-4 pb-8">
@@ -170,10 +171,35 @@ export default function DayView({ date, data, onBook }) {
                   {freeWindows.map((w, i) => {
                     const h = w.endMin - w.startMin
                     const tall = h >= 60
+                    // Past window on today → grey out
+                    const isPast = todayFlag && w.endMin <= nowMin
+                    const isCurrent = todayFlag && w.startMin < nowMin && w.endMin > nowMin
+                    // effective start for booking is nowMin when partially past
+                    const bookStart = (isCurrent && nowMin > w.startMin)
+                      ? minToTime(Math.ceil(nowMin / 30) * 30)
+                      : minToTime(w.startMin)
+
+                    if (isPast) {
+                      return (
+                        <div
+                          key={i}
+                          className="absolute left-0 right-0 flex items-center justify-center"
+                          style={{
+                            top: minutesToPx(w.startMin) + 'px',
+                            height: minutesToPx(h) + 'px',
+                            background: 'repeating-linear-gradient(45deg, rgba(0,0,0,0.02) 0px, rgba(0,0,0,0.02) 4px, transparent 4px, transparent 10px)',
+                            borderTop: '1px dashed rgba(0,0,0,0.06)',
+                          }}
+                        >
+                          {tall && <span className="text-[0.58rem] text-slate-300 font-semibold">Vergangen</span>}
+                        </div>
+                      )
+                    }
+
                     return (
                       <button
                         key={i}
-                        onClick={() => onBook(court.id, court.name, minToTime(w.startMin), minToTime(Math.min(w.startMin + 90, w.endMin)))}
+                        onClick={() => onBook(court.id, court.name, bookStart, minToTime(Math.min(parseInt(bookStart) * 60 + 90, w.endMin)))}
                         className="absolute left-0 right-0 group flex flex-col items-center justify-center gap-1 transition-all hover:z-10"
                         style={{
                           top:    minutesToPx(w.startMin) + 'px',
@@ -186,7 +212,7 @@ export default function DayView({ date, data, onBook }) {
                         <div className="opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center gap-1">
                           <div className="flex items-center gap-1.5 bg-green-500 text-white text-[0.7rem] font-bold px-3 py-1.5 rounded-full shadow-lg shadow-green-500/30">
                             <CalendarPlus size={12} />
-                            {minToTime(w.startMin)} – {minToTime(w.endMin)} · Buchen
+                            {bookStart} – {minToTime(w.endMin)} · Buchen
                           </div>
                         </div>
                         {tall && (

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { format, addDays, startOfWeek, isToday, parseISO } from 'date-fns'
+import { format, addDays, startOfWeek, isToday, parseISO, isValid } from 'date-fns'
 import { de } from 'date-fns/locale'
 import { authStatus, getSchedule, getWeek } from './api.js'
 import Topbar from './components/Topbar.jsx'
@@ -7,21 +7,41 @@ import DateNav from './components/DateNav.jsx'
 import DayView from './components/DayView.jsx'
 import WeekView from './components/WeekView.jsx'
 import BookingModal from './components/BookingModal.jsx'
+import SuccessCard from './components/SuccessCard.jsx'
+import LoginPrompt from './components/LoginPrompt.jsx'
 import Toast from './components/Toast.jsx'
 
+function getInitialDate() {
+  const p = new URLSearchParams(window.location.search).get('date')
+  if (p) { const d = parseISO(p); if (isValid(d)) return d }
+  return new Date()
+}
+
 export default function App() {
-  const [date, setDate]       = useState(new Date())
-  const [view, setView]       = useState('day')
-  const [auth, setAuth]       = useState(null)
+  const [date, setDate]         = useState(getInitialDate)
+  const [view, setView]         = useState('day')
+  const [auth, setAuth]         = useState(null)
   const [schedule, setSchedule] = useState(null)
   const [weekData, setWeekData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [modal, setModal]     = useState(null) // { courtId, courtName, start?, end? }
-  const [toast, setToast]     = useState(null)
+  const [loading, setLoading]   = useState(true)
+  const [modal, setModal]       = useState(null)   // { courtId, courtName, start?, end? }
+  const [success, setSuccess]   = useState(null)   // { booking, courtName }
+  const [loginPrompt, setLoginPrompt] = useState(null) // { courtName }
+  const [toast, setToast]       = useState(null)
 
   useEffect(() => {
     authStatus().then(setAuth).catch(() => setAuth({ authenticated: false }))
   }, [])
+
+  // URL-Sync: date → ?date=yyyy-MM-dd
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const newDate = format(date, 'yyyy-MM-dd')
+    if (params.get('date') !== newDate) {
+      params.set('date', newDate)
+      window.history.replaceState(null, '', `?${params.toString()}`)
+    }
+  }, [date])
 
   const loadDay = useCallback(async (d) => {
     setLoading(true)
@@ -60,15 +80,21 @@ export default function App() {
 
   const openModal = (courtId, courtName, start = '', end = '') => {
     if (!auth?.authenticated) {
-      window.location.href = '/api/auth/login/'
+      setLoginPrompt({ courtName })
       return
     }
     setModal({ courtId, courtName, start, end })
   }
 
-  const onBooked = () => {
+  const onBooked = (booking, courtName) => {
     setModal(null)
-    showToast('✅ Buchung bestätigt! Bestätigung kommt per E-Mail.', 'success')
+    setSuccess({ booking, courtName })
+    loadDay(date)
+  }
+
+  const onCancelled = () => {
+    setSuccess(null)
+    showToast('Buchung wurde storniert.', 'error')
     loadDay(date)
   }
 
@@ -87,11 +113,7 @@ export default function App() {
         {loading ? (
           <Loader />
         ) : view === 'day' ? (
-          <DayView
-            date={date}
-            data={schedule}
-            onBook={openModal}
-          />
+          <DayView date={date} data={schedule} onBook={openModal} />
         ) : (
           <WeekView
             data={weekData}
@@ -99,6 +121,13 @@ export default function App() {
           />
         )}
       </main>
+
+      {loginPrompt && (
+        <LoginPrompt
+          courtName={loginPrompt.courtName}
+          onClose={() => setLoginPrompt(null)}
+        />
+      )}
 
       {modal && (
         <BookingModal
@@ -111,6 +140,16 @@ export default function App() {
           onClose={() => setModal(null)}
           onBooked={onBooked}
           onError={(msg) => showToast(msg, 'error')}
+        />
+      )}
+
+      {success && (
+        <SuccessCard
+          booking={success.booking}
+          courtName={success.courtName}
+          date={date}
+          onClose={() => setSuccess(null)}
+          onCancelled={onCancelled}
         />
       )}
 
