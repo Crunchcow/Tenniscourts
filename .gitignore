@@ -1,0 +1,10 @@
+backend/.venv/
+backend/__pycache__/
+backend/db.sqlite3
+backend/staticfiles/
+backend/**/__pycache__/
+backend/**/migrations/__pycache__/
+*.pyc
+*.pyo
+.env
+frontend/assets/
