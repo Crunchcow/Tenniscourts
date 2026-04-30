@@ -131,7 +131,8 @@ def oidc_callback(request):
             user.save(update_fields=['is_staff'])
         auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
 
-    return redirect('/')
+    site_url = getattr(settings, 'SITE_URL', '').rstrip('/')
+    return redirect(f'{site_url}/' if site_url else '/')
 
 
 def oidc_status(request):
@@ -149,7 +150,8 @@ def oidc_status(request):
 def oidc_logout(request):
     """Löscht die OIDC-Session."""
     request.session.flush()
-    return redirect('/')
+    site_url = getattr(settings, 'SITE_URL', '').rstrip('/')
+    return redirect(f'{site_url}/' if site_url else '/')
 
 
 # ---------------------------------------------------------------------------

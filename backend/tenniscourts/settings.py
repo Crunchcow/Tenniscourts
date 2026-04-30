@@ -94,6 +94,13 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ---------------------------------------------------------------------------
+# Session / Cookie
+# ---------------------------------------------------------------------------
+SESSION_COOKIE_SAMESITE = os.environ.get('SESSION_COOKIE_SAMESITE', 'Lax')
+SESSION_COOKIE_SECURE   = os.environ.get('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
+CSRF_COOKIE_SAMESITE    = 'Lax'
+
+# ---------------------------------------------------------------------------
 # REST Framework
 # ---------------------------------------------------------------------------
 REST_FRAMEWORK = {
