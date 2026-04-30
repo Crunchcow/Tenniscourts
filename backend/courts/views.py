@@ -6,6 +6,7 @@ import logging
 
 import requests as http_requests
 from django.conf import settings
+from django.contrib.auth import login as auth_login
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, redirect
 from django.http import HttpResponseForbidden, HttpResponseRedirect, JsonResponse
@@ -114,7 +115,22 @@ def oidc_callback(request):
     request.session['oidc_name'] = claims.get('name', '')
     request.session.pop('oidc_state', None)
 
-    request.session['oidc_admin'] = role in ('admin', 'verwaltung')
+    is_admin = role in ('admin', 'verwaltung')
+    request.session['oidc_admin'] = is_admin
+
+    # Automatisch in Django-Admin einloggen wenn Admin-Rolle vorhanden
+    if is_admin:
+        email = claims.get('email', '')
+        username = email.split('@')[0] or 'oidc_admin'
+        user, created = User.objects.get_or_create(
+            email=email,
+            defaults={'username': username, 'is_staff': True, 'is_active': True}
+        )
+        if not created and not user.is_staff:
+            user.is_staff = True
+            user.save(update_fields=['is_staff'])
+        auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+
     return redirect('/')
 
 
@@ -245,20 +261,40 @@ class WeekOverviewView(APIView):
 
             court_data = []
             for court in courts:
-                has_activity = (
-                    Booking.objects.filter(
-                        court=court,
-                        status__in=['confirmed', 'pending'],
-                        start_datetime__lt=day_end,
-                        end_datetime__gt=day_start,
-                    ).exists()
-                    or TimeBlock.objects.filter(
-                        court=court,
-                        start_datetime__lt=day_end,
-                        end_datetime__gt=day_start,
-                    ).exists()
-                )
-                court_data.append({'id': court.id, 'name': court.name, 'has_activity': has_activity})
+                bookings = Booking.objects.filter(
+                    court=court, status__in=['confirmed', 'pending'],
+                    start_datetime__lt=day_end, end_datetime__gt=day_start,
+                ).order_by('start_datetime')
+                blocks = TimeBlock.objects.filter(
+                    court=court,
+                    start_datetime__lt=day_end, end_datetime__gt=day_start,
+                ).order_by('start_datetime')
+
+                slots = []
+                for b in bookings:
+                    ls = b.start_datetime.astimezone(LOCAL_TZ)
+                    le = b.end_datetime.astimezone(LOCAL_TZ)
+                    slots.append({
+                        'type': 'booking',
+                        'start_minutes': ls.hour * 60 + ls.minute,
+                        'end_minutes':   le.hour * 60 + le.minute,
+                    })
+                for bl in blocks:
+                    ls = bl.start_datetime.astimezone(LOCAL_TZ)
+                    le = bl.end_datetime.astimezone(LOCAL_TZ)
+                    slots.append({
+                        'type': 'block',
+                        'block_type': bl.block_type,
+                        'start_minutes': ls.hour * 60 + ls.minute,
+                        'end_minutes':   le.hour * 60 + le.minute,
+                    })
+
+                court_data.append({
+                    'id': court.id,
+                    'name': court.name,
+                    'has_activity': bool(slots),
+                    'slots': slots,
+                })
 
             days.append({'date': str(current), 'courts': court_data})
 
