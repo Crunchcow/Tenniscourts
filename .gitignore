@@ -7,4 +7,4 @@ backend/**/migrations/__pycache__/
 *.pyc
 *.pyo
 .env
-frontend/assets/
+frontend-src/node_modules/
