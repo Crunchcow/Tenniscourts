@@ -43,6 +43,43 @@ function getFreeWindows(slots) {
   return windows.filter(w => w.endMin - w.startMin >= 30)
 }
 
+// Generate fixed time slots for slot-based courts
+function getSlots(court, date) {
+  if (!court.use_slots) return null
+
+  const slotDuration = court.slot_duration_minutes || 60
+  const [startHour, startMin] = (court.slot_start_time || '09:00').split(':').map(Number)
+  const [endHour, endMin] = (court.slot_end_time || '20:00').split(':').map(Number)
+
+  const startMinutes = startHour * 60 + startMin - HOUR_START * 60
+  const endMinutes = endHour * 60 + endMin - HOUR_START * 60
+
+  const slots = []
+  for (let m = startMinutes; m < endMinutes; m += slotDuration) {
+    const slotStart = m
+    const slotEnd = Math.min(m + slotDuration, endMinutes)
+    slots.push({
+      startMin: slotStart,
+      endMin: slotEnd,
+      start: minToTime(slotStart),
+      end: minToTime(slotEnd)
+    })
+  }
+  return slots
+}
+
+// Check if a slot is available (no overlapping bookings/blocks)
+function isSlotAvailable(slot, occupiedSlots) {
+  const slotStartMin = slot.startMin + HOUR_START * 60
+  const slotEndMin = slot.endMin + HOUR_START * 60
+
+  return !occupiedSlots.some(s => {
+    const occStart = s.start_minutes
+    const occEnd = s.end_minutes
+    return slotStartMin < occEnd && slotEndMin > occStart
+  })
+}
+
 export default function DayView({ date, data, onBook }) {
   const [tooltip, setTooltip] = useState(null)
 
@@ -143,6 +180,8 @@ export default function DayView({ date, data, onBook }) {
           {courts.map((court, ci) => {
             const freeWindows = getFreeWindows(court.slots)
             const hasSlots    = (court.slots?.length ?? 0) > 0
+            const courtSlots  = getSlots(court, date)
+            const useSlotMode = courtSlots !== null
 
             return (
               <div key={court.id}
@@ -158,56 +197,95 @@ export default function DayView({ date, data, onBook }) {
                   }} />
                 ))}
 
-                {/* FREE WINDOWS */}
-                {freeWindows.map((w, i) => {
-                  const h         = w.endMin - w.startMin
-                  const tall      = h >= 60
-                  const isPast    = todayFlag && w.endMin <= nowMin
-                  const isCurrent = todayFlag && w.startMin < nowMin && w.endMin > nowMin
-                  const bookStart = isCurrent
-                    ? minToTime(Math.ceil(nowMin / 30) * 30)
-                    : minToTime(w.startMin)
+                {/* SLOT-BASED BOOKING */}
+                {useSlotMode ? (
+                  courtSlots.map((slot, i) => {
+                    const h = slot.endMin - slot.startMin
+                    const isAvailable = isSlotAvailable(slot, court.slots || [])
+                    const isPast = todayFlag && slot.endMin <= nowMin
 
-                  if (isPast) return (
-                    <div key={i} className="absolute left-0 right-0 flex items-center justify-center" style={{
-                      top: minutesToPx(w.startMin) + 'px', height: minutesToPx(h) + 'px',
-                      background: 'repeating-linear-gradient(45deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 4px, transparent 4px, transparent 10px)',
-                    }}>
-                      {tall && <span className="text-[0.5rem] text-slate-300 font-semibold rotate-0">vergangen</span>}
-                    </div>
-                  )
-
-                  return (
-                    <button key={i}
-                      onClick={() => onBook(court.id, court.name, bookStart, minToTime(Math.min(w.startMin + 90, w.endMin)))}
-                      className="absolute left-0 right-0 group flex flex-col items-center justify-center gap-0.5 transition-all hover:z-10"
-                      style={{
-                        top: minutesToPx(w.startMin) + 'px', height: minutesToPx(h) + 'px',
-                        background: 'rgba(22,163,74,0.055)',
-                        borderTop:    '1.5px dashed rgba(22,163,74,0.25)',
-                        borderBottom: '1.5px dashed rgba(22,163,74,0.25)',
-                      }}
-                    >
-                      <div className="opacity-0 group-hover:opacity-100 transition-all px-1 w-full flex justify-center">
-                        <div className="flex items-center gap-1 bg-green-500 text-white text-[0.62rem] font-bold px-2.5 py-1 rounded-full shadow-lg shadow-green-500/30 whitespace-nowrap">
-                          <CalendarPlus size={10} />
-                          {bookStart} buchen
-                        </div>
+                    if (isPast) return (
+                      <div key={i} className="absolute left-1 right-1 flex items-center justify-center rounded-lg" style={{
+                        top: minutesToPx(slot.startMin) + 2 + 'px',
+                        height: Math.max(minutesToPx(h) - 4, 24) + 'px',
+                        background: 'repeating-linear-gradient(45deg, rgba(0,0,0,0.02) 0px, rgba(0,0,0,0.02) 4px, transparent 4px, transparent 10px)',
+                      }}>
+                        <span className="text-[0.5rem] text-slate-300 font-semibold">{slot.start}</span>
                       </div>
-                      {tall && (
-                        <span className="text-[0.55rem] text-green-600/35 font-semibold group-hover:opacity-0 transition-opacity">
-                          frei
-                        </span>
-                      )}
-                    </button>
-                  )
-                })}
+                    )
 
-                {/* EMPTY state */}
-                {!hasSlots && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="text-[0.6rem] text-green-500/40 font-bold rotate-0">ganztags frei</span>
-                  </div>
+                    if (!isAvailable) return null // Slot belegt, wird durch occupied slots angezeigt
+
+                    return (
+                      <button key={i}
+                        onClick={() => onBook(court.id, court.name, slot.start, slot.end)}
+                        className="absolute left-1 right-1 group flex flex-col items-center justify-center rounded-lg transition-all hover:z-10 border-2 border-dashed border-green-400/50 hover:border-green-500 hover:bg-green-500/10"
+                        style={{
+                          top: minutesToPx(slot.startMin) + 2 + 'px',
+                          height: Math.max(minutesToPx(h) - 4, 24) + 'px',
+                        }}
+                      >
+                        <div className="flex items-center gap-1 bg-green-500 text-white text-[0.65rem] font-bold px-2 py-1 rounded-full shadow-md whitespace-nowrap">
+                          <CalendarPlus size={10} />
+                          {slot.start} – {slot.end}
+                        </div>
+                      </button>
+                    )
+                  })
+                ) : (
+                  <>
+                    {/* FREE WINDOWS (legacy mode) */}
+                    {freeWindows.map((w, i) => {
+                      const h         = w.endMin - w.startMin
+                      const tall      = h >= 60
+                      const isPast    = todayFlag && w.endMin <= nowMin
+                      const isCurrent = todayFlag && w.startMin < nowMin && w.endMin > nowMin
+                      const bookStart = isCurrent
+                        ? minToTime(Math.ceil(nowMin / 30) * 30)
+                        : minToTime(w.startMin)
+
+                      if (isPast) return (
+                        <div key={i} className="absolute left-0 right-0 flex items-center justify-center" style={{
+                          top: minutesToPx(w.startMin) + 'px', height: minutesToPx(h) + 'px',
+                          background: 'repeating-linear-gradient(45deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 4px, transparent 4px, transparent 10px)',
+                        }}>
+                          {tall && <span className="text-[0.5rem] text-slate-300 font-semibold rotate-0">vergangen</span>}
+                        </div>
+                      )
+
+                      return (
+                        <button key={i}
+                          onClick={() => onBook(court.id, court.name, bookStart, minToTime(Math.min(w.startMin + 90, w.endMin)))}
+                          className="absolute left-0 right-0 group flex flex-col items-center justify-center gap-0.5 transition-all hover:z-10"
+                          style={{
+                            top: minutesToPx(w.startMin) + 'px', height: minutesToPx(h) + 'px',
+                            background: 'rgba(22,163,74,0.055)',
+                            borderTop:    '1.5px dashed rgba(22,163,74,0.25)',
+                            borderBottom: '1.5px dashed rgba(22,163,74,0.25)',
+                          }}
+                        >
+                          <div className="opacity-0 group-hover:opacity-100 transition-all px-1 w-full flex justify-center">
+                            <div className="flex items-center gap-1 bg-green-500 text-white text-[0.62rem] font-bold px-2.5 py-1 rounded-full shadow-lg shadow-green-500/30 whitespace-nowrap">
+                              <CalendarPlus size={10} />
+                              {bookStart} buchen
+                            </div>
+                          </div>
+                          {tall && (
+                            <span className="text-[0.55rem] text-green-600/35 font-semibold group-hover:opacity-0 transition-opacity">
+                              frei
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+
+                    {/* EMPTY state */}
+                    {!hasSlots && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-[0.6rem] text-green-500/40 font-bold rotate-0">ganztags frei</span>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Now indicator — only on first court to avoid duplication */}

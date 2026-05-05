@@ -6,7 +6,10 @@ from .models import Court, TimeBlock, Booking
 class CourtSerializer(serializers.ModelSerializer):
     class Meta:
         model = Court
-        fields = ['id', 'name', 'description']
+        fields = [
+            'id', 'name', 'description',
+            'use_slots', 'slot_duration_minutes', 'slot_start_time', 'slot_end_time'
+        ]
 
 
 class TimeBlockSerializer(serializers.ModelSerializer):

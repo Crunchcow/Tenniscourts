@@ -9,6 +9,12 @@ class Court(models.Model):
     is_active = models.BooleanField(default=True, verbose_name='Aktiv')
     order = models.PositiveSmallIntegerField(default=0, verbose_name='Reihenfolge')
 
+    # Slot-based booking configuration
+    use_slots = models.BooleanField(default=False, verbose_name='Slot-Buchung aktiv')
+    slot_duration_minutes = models.PositiveSmallIntegerField(default=60, verbose_name='Slot-Dauer (Minuten)')
+    slot_start_time = models.TimeField(default='09:00', verbose_name='Erster Slot')
+    slot_end_time = models.TimeField(default='20:00', verbose_name='Letzter Slot')
+
     class Meta:
         ordering = ['order', 'name']
         verbose_name = 'Platz'
