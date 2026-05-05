@@ -234,6 +234,10 @@ class DayScheduleView(APIView):
                 'name': court.name,
                 'description': court.description,
                 'slots': slots,
+                'use_slots': court.use_slots,
+                'slot_duration_minutes': court.slot_duration_minutes,
+                'slot_start_time': court.slot_start_time.strftime('%H:%M') if court.slot_start_time else '09:00',
+                'slot_end_time': court.slot_end_time.strftime('%H:%M') if court.slot_end_time else '20:00',
             })
 
         return Response({'date': str(date), 'courts': result})
